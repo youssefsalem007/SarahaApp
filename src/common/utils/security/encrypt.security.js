@@ -17,7 +17,7 @@ export function encrypt(text) {
 
 
 
-// Decrypt function
+
 export function decrypt(text) {
 
     const [ivHex, encryptedText] = text.split(':');
