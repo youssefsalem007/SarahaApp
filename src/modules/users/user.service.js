@@ -19,25 +19,25 @@ import joi from "joi";
 export const signUp = async (req, res, next) => {
   const { userName, email, password, cPassword, age, gender, phone } = req.body;
 
-  if (password !== cPassword) {
-    throw new Error("invalid password", { cause: 400 });
-  }
+  // if (password !== cPassword) {
+  //   throw new Error("invalid password", { cause: 400 });
+  // }
 
-  if (await db_service.findOne({ model: userModel, filter: { email } })) {
-    throw new Error("email already exist", { cause: 409 });
-  }
-  const user = await db_service.create({
-    model: userModel,
-    data: {
-      userName,
-      email,
-      password: hash({ plainText: password, salt_rounds: SALT_ROUNDS }),
-      age,
-      gender,
-      phone: encrypt(phone),
-    },
-  });
-  successResponse({ res, status: 201, data: user });
+  // if (await db_service.findOne({ model: userModel, filter: { email } })) {
+  //   throw new Error("email already exist", { cause: 409 });
+  // }
+  // const user = await db_service.create({
+  //   model: userModel,
+  //   data: {
+  //     userName,
+  //     email,
+  //     password: hash({ plainText: password, salt_rounds: SALT_ROUNDS }),
+  //     age,
+  //     gender,
+  //     phone: encrypt(phone),
+  //   },
+  // });
+  // successResponse({ res, status: 201, data: user });
 };
 
 export const signUpWithGmail = async (req, res, next) => {
