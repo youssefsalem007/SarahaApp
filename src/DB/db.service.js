@@ -37,9 +37,13 @@ export const updateOne = async ({ model, filter = {},update,  options = {} } = {
   return await doc.exec()
 };
 
-export const findOneAndUpdate = async ({ model, filter = {},findOneAndUpdate,  options = {} } = {}) => {
+export const findOneAndUpdate = async ({ model, filter = {},update,  options = {} } = {}) => {
   const doc = model.findOneAndUpdate(filter, update, {new: true ,runValidators : true, ...options});
 
   return await doc.exec()
+};
+ 
+export const findById = async ({ model, id, select = "" } = {}) => {
+  return await model.findById(id).select(select);
 };
 

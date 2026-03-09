@@ -9,12 +9,10 @@ export const authentication = async (req, res, next) => {
     throw new Error("token not exist");
   }
 
-  const [prefix, token] = authorization.split(" ")
-  if(prefix !== "bearer"){
+  const [prefix, token] = authorization.split(" ");
+  if (prefix !== "bearer") {
     throw new Error("invalid token prefix");
-    
   }
-
 
   const decoded = verifyToken({ token: token, secret_key: "key" });
 
@@ -24,7 +22,7 @@ export const authentication = async (req, res, next) => {
   const user = await db_service.findOne({
     model: userModel,
     filter: { _id: decoded.id },
-    select: "-password",
+    // select: "-password",
   });
 
   if (!user) {
