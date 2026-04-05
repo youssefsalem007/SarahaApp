@@ -46,4 +46,8 @@ export const findOneAndUpdate = async ({ model, filter = {},update,  options = {
 export const findById = async ({ model, id, select = "" } = {}) => {
   return await model.findById(id).select(select);
 };
+export const deleteMany = async ({ model, filter = {}} = {}) => {
+  return await model.deleteMany(filter);
+};
+
 

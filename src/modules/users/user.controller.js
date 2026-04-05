@@ -23,5 +23,7 @@ userRouter.get("/share-profile/:id",validation(UV.shareProfileSchema), US.shareP
 userRouter.patch("/update-profile",authentication,validation(UV.updateProfileSchema), US.updateProfile);
 userRouter.patch("/update-password",authentication,validation(UV.updatePasswordSchema), US.updatePassword);
 userRouter.get("/refresh-token", US.refresh_token);
+userRouter.post("/logout",authentication, US.logout);
+
 
 export default userRouter; 

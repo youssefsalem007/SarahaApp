@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema(
         public_id: { type: String, required: true },
       },
     ],
+    changeCredential: Date,
     confirmed: Boolean,
     provider: {
       type: String,

@@ -14,9 +14,16 @@ import { hash, compare } from "../../common/utils/security/hash.security.js";
 import { v4 as uuidv4 } from "uuid";
 import { OAuth2Client } from "google-auth-library";
 import { SALT_ROUNDS, SECRET_KEY } from "../../../config/config.service.js";
-import joi from "joi";
 import cloudinary from "../../common/utils/cloudinary.js";
-import { model } from "mongoose";
+import { randomUUID } from "node:crypto";
+import revokeTokenModel from "../../DB/models/revokeToken.model.js";
+import {
+  deletekey,
+  get,
+  get_key,
+  revoked_key,
+  set,
+} from "../../DB/redis/redis.service.js";
 
 export const signUp = async (req, res, next) => {
   const { userName, email, password, cPassword, age, gender, phone } = req.body;
@@ -31,11 +38,6 @@ export const signUp = async (req, res, next) => {
   if (password !== cPassword) {
     throw new Error("invalid password", { cause: 400 });
   }
-  // let arr_paths = []
-  // for (const file of req.files.attachments) {
-  //   arr_paths.push(file.path)
-
-  // }
 
   if (await db_service.findOne({ model: userModel, filter: { email } })) {
     throw new Error("email already exist", { cause: 409 });
@@ -50,7 +52,6 @@ export const signUp = async (req, res, next) => {
       gender,
       phone: encrypt(phone),
       profilePicture: { secure_url, public_id },
-      // coverPicture: arr_paths
     },
   });
   successResponse({ res, status: 201, data: user });
@@ -93,7 +94,7 @@ export const signUpWithGmail = async (req, res, next) => {
     payload: { id: user._id, email: user.email },
     secret_key: SECRET_KEY,
     options: {
-      expiresIn: 60 * 5,
+      expiresIn: 60 * 3,
       // notBefore: 60 * 60,
       jwtid: uuidv4(),
     },
@@ -116,13 +117,16 @@ export const signIn = async (req, res, next) => {
   if (!compare({ plainText: password, cipherText: user.password })) {
     throw new Error("invalid password", { cause: 400 });
   }
+
+  const jwtid = randomUUID();
+
   const access_token = GenerateToken({
     payload: { id: user._id, email: user.email },
     secret_key: SECRET_KEY,
     options: {
-      expiresIn: "1day",
+      expiresIn: 60 * 3,
       // notBefore: 60 * 60,
-      jwtid: uuidv4(),
+      jwtid,
     },
   });
 
@@ -131,8 +135,7 @@ export const signIn = async (req, res, next) => {
     secret_key: "key2",
     options: {
       expiresIn: "1y",
-
-      jwtid: uuidv4(),
+      jwtid,
     },
   });
   successResponse({
@@ -143,6 +146,14 @@ export const signIn = async (req, res, next) => {
 };
 
 export const profile = async (req, res, next) => {
+  const key = `profile::${req.user._id}`;
+
+  const userExist = await get({ key });
+  if (userExist) {
+    return successResponse({ res, data: userExist });
+  }
+
+  await set({ key, value: req.user, ttl: 60 * 2 });
   successResponse({ res, data: req.user });
 };
 
@@ -171,6 +182,14 @@ export const refresh_token = async (req, res, next) => {
 
   if (!user) {
     throw new Error("user not exist", { cause: 404 });
+  }
+
+  const revokeToken = await db_service.findOne({
+    model: revokeTokenModel,
+    filter: { tokenId: decoded.jti },
+  });
+  if (revokeToken) {
+    throw new Error("invalid token revoked");
   }
 
   const access_token = GenerateToken({
@@ -219,6 +238,8 @@ export const updateProfile = async (req, res, next) => {
     throw new Error("user not exist");
   }
 
+  await deletekey({ key: `profile::${req.user._id}` });
+
   successResponse({ res, data: user });
 };
 
@@ -231,6 +252,26 @@ export const updatePassword = async (req, res, next) => {
   const newHashedPassword = hash({ plainText: newPassword });
   req.user.password = newHashedPassword;
   await req.user.save();
+
+  successResponse({ res });
+};
+
+export const logout = async (req, res, next) => {
+  const { flag } = req.query;
+
+  if (flag == "all") {
+    req.user.changeCredential = new Date();
+    await req.user.save();
+    await deletekey({
+      key: get_key({ userId: req.user._id }),
+    });
+  } else {
+    await set({
+      key: revoked_key({ userId: req.user._id, jti: req.decoded.jti }),
+      value: `${req.decoded.jti}`,
+      ttl: req.decoded.exp - Math.floor(Date.now() / 1000),
+    });
+  }
 
   successResponse({ res });
 };

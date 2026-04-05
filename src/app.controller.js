@@ -3,10 +3,12 @@ import checkConnectionDB from "./DB/connectionDB.js";
 import userRouter from "./modules/users/user.controller.js";
 import cors from "cors";
 import { PORT } from "../config/config.service.js";
+import { redisClient, redisConnection } from "./DB/redis/redis.db.js";
+import { set } from "./DB/redis/redis.service.js";
 const app = express();
 const port = PORT;
 
-const bootstrap = () => {
+const bootstrap = async () => {
   app.use(cors(), express.json());
 
   app.get("/", (req, res, next) => {
@@ -14,8 +16,9 @@ const bootstrap = () => {
   });
 
   checkConnectionDB();
+  redisConnection();
 
-  app.use("/uploads", express.static("uploads"))
+  app.use("/uploads", express.static("uploads"));
   app.use("/users", userRouter);
 
   app.use("/*demo", (req, res, next) => {
